@@ -15,6 +15,10 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+import os
+from datetime import timedelta
+STATIC_ROOT= os.path.join(BASE_DIR, "static")
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -25,7 +29,8 @@ SECRET_KEY = 'django-insecure-iln_ug-9pdi2lb87n=86c6*n+&8@=ty^ml2jtmsq5*hytq=&o_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['webtimtruong.pythonanywhere.com', '127.0.0.1','http://127.0.0.1:5000/','http://127.0.0.1:5000']
+
 
 
 # Application definition
@@ -37,9 +42,83 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',
+    'ckeditor',
+    'ckeditor_uploader',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.facebook',
+    'apptimtruonghoc',
+    'rest_framework',
+    'dj_rest_auth',
+    'dj_rest_auth.registration',
+    'drf_yasg',
+    'rest_framework.authtoken',
+    'corsheaders',
+    'django_extensions'
 ]
 
+# Cấu hình Site ID (quan trọng cho allauth)
+SITE_ID = 1
+
+# Cấu hình backend xác thực
+AUTHENTICATION_BACKENDS = (
+    # Bắt buộc cho allauth để hoạt động
+    'allauth.account.auth_backends.AuthenticationBackend',
+    # Django's built-in authentication backend,
+    'django.contrib.auth.backends.ModelBackend',
+)
+
+
+
+# Cấu hình email cho allauth (tùy chọn nhưng nên có)
+# ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_EMAIL_VERIFICATION = "mandatory" # "mandatory" nếu bạn muốn xác minh email
+# ACCOUNT_USERNAME_REQUIRED = False # Không yêu cầu username nếu dùng email làm USERNAME_FIELD
+# ACCOUNT_AUTHENTICATION_METHOD = 'email' # Xác thực bằng email thay vì username
+
+ACCOUNT_LOGIN_METHODS = ['email']
+
+
+
+
+
+# Cấu hình Social Account (quan trọng)
+SOCIALACCOUNT_QUERY_EMAIL = True # Yêu cầu email từ provider
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': '875195545395-kh54279ju4pea3h5n1b85uj3hohn0aih.apps.googleusercontent.com', # Thay bằng Client ID của bạn
+            'secret': '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', # Thay bằng Client Secret của bạn
+            'key': ''
+        }
+    },
+    'facebook': {
+        'APP': {
+            'client_id': '2039597393517758', # Thay bằng App ID của bạn
+            'secret': '6c65641a8597d224524c4b0194a14b89', # Thay bằng App Secret của bạn
+            'key': ''
+        },
+        'SCOPE': [
+            'email',
+            'public_profile',
+        ],
+        'AUTH_PARAMS': {
+            'auth_type': 'reauthenticate',
+        },
+        'METHOD': 'oauth2',
+        'VERIFIED_EMAIL': False # Nếu Facebook không cung cấp email đã xác minh
+    }
+}
+
+
+AUTH_USER_MODEL = 'apptimtruonghoc.User'
+
+
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -47,6 +126,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
 ]
 
 ROOT_URLCONF = 'timtruonghoc.urls'
@@ -75,10 +155,27 @@ WSGI_APPLICATION = 'timtruonghoc.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'webtimtruong$timtruongdb',
+        'USER': 'webtimtruong',
+        'PASSWORD': '15django432',
+        'HOST': 'webtimtruong.mysql.pythonanywhere-services.com',
+
     }
 }
+
+
+CKEDITOR_BASEPATH = "/static/ckeditor/ckeditor/"
+CKEDITOR_UPLOAD_PATH = "uploads/" # Thư mục để lưu trữ các file tải lên từ CKEditor
+CKEDITOR_CONFIGS = {
+    'default': {
+        'toolbar': 'full',
+        'height': 300,
+        'width': '100%',
+        'extraPlugins': 'codesnippet', # Ví dụ thêm plugin code snippet
+    },
+}
+
 
 
 # Password validation
@@ -105,7 +202,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Ho_Chi_Minh'
 
 USE_I18N = True
 
@@ -121,3 +218,88 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+CORS_ALLOW_ALL_ORIGINS = False
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "https://webtimtruong.pythonanywhere.com",
+]
+
+REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication', # Nếu bạn dùng Token
+        'rest_framework_simplejwt.authentication.JWTAuthentication', # Nếu bạn dùng JWT
+        'rest_framework.authentication.SessionAuthentication', # Cho browsable API
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10 # Kích thước trang mặc định
+}
+
+REST_AUTH = {
+    'USE_JWT': True, # Nếu bạn muốn dùng JWT tokens
+    'JWT_AUTH_HTTPONLY': False, # Đặt True nếu bạn muốn JWT token chỉ là http-only cookie
+    'USER_DETAILS_SERIALIZER': 'apptimtruonghoc.serializers.UserSerializer', # Sử dụng serializer của bạn
+    'REGISTER_SERIALIZER': 'apptimtruonghoc.serializers.CustomRegisterSerializer', # Sẽ tạo serializer này
+    'OLD_PASSWORD_FIELD_ENABLED': True, # Cho phép thay đổi mật khẩu cũ
+    'LOGOUT_ON_PASSWORD_CHANGE': True,
+    'TOKEN_MODEL': None, # Rất quan trọng nếu dùng JWT, nếu không nó sẽ tạo thêm Token
+    'LOGIN_SERIALIZER': 'apptimtruonghoc.serializers.CustomLoginSerializer', # Tùy chỉnh login serializer để chỉ dùng email
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=60),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+}
+
+# Cấu hình allauth cho API (quan trọng để nó không redirect mà trả về JSON)
+# ACCOUNT_ADAPTER = 'dj_rest_auth.app_settings.DefaultAccountAdapter'
+# SOCIALACCOUNT_ADAPTER = 'dj_rest_auth.app_settings.DefaultSocialAccountAdapter'
+
+ACCOUNT_EMAIL_CONFIRMATION_EXPIRE_DAYS = 3
+ACCOUNT_EMAIL_REQUIRED = True # Kích hoạt email verification nếu cần
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_VERIFICATION = 'optional' # "mandatory" nếu bạn muốn xác minh email
+ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5
+ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300 # 5 minutes
+
+
+LOGIN_REDIRECT_URL = '/api/v1/auth/user/' # Ví dụ: endpoint lấy thông tin user
+ACCOUNT_LOGOUT_REDIRECT_URL = '/'
+ACCOUNT_CONFIRM_EMAIL_ON_GET = True # Cho phép xác nhận email qua GET request (không khuyến khích cho production)
+ACCOUNT_EMAIL_CONFIRMATION_HMAC = True # Bảo mật hơn
+
+
+
+# Cấu hình email backend cho allauth (để gửi email xác nhận nếu cần)
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend' # Để test, sẽ in email ra console
+# Hoặc cấu hình SMTP thực tế của bạn
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'your_email@gmail.com'
+# EMAIL_HOST_PASSWORD = 'your_app_password' # Sử dụng App Password cho Gmail
+
+
+
+
+
+# GOOGLE
+# CLIENT_ID: 875195545395-kh54279ju4pea3h5n1b85uj3hohn0aih.apps.googleusercontent.com
+# CLIENT_SECRET: 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
+
+
+# FACEBOOK
+# APP_ID: 2039597393517758
+# APP_SECRET: 6c65641a8597d224524c4b0194a14b89
+# CLIENT_TOKEN: 5aa6f7f070661537f564b71a4841a6fd
