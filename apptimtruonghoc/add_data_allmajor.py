@@ -5,11 +5,11 @@ import os
 # --- CẤU HÌNH DATABASE CỦA BẠN ---
 # Thay thế bằng thông tin kết nối database của bạn
 DB_CONFIG = {
-    'host': 'webtimtruong.mysql.pythonanywhere-services.com',
-    'user': 'webtimtruong',
-    'password': '15django432',
-    'database': 'webtimtruong$timtruongdb',
-    'port': 3306
+    'host': 'timtruonghoc.mysql.pythonanywhere-services.com', # Thay bằng Host của bạn
+    'user': 'timtruonghoc',            # Thay bằng Username database của bạn
+    'password': 'admin@123',  # Thay bằng Password database của bạn
+    'database': 'timtruonghoc$timtruonghocdb', # Thay bằng Database name của bạn
+    'port': 3306 # Cổng mặc định của MySQL, hoặc 5432 cho PostgreSQL
 }
 
 # --- CẤU HÌNH FILE EXCEL CỦA BẠN ---

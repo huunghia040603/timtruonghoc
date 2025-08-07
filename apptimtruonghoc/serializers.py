@@ -1,83 +1,114 @@
 from rest_framework import serializers
-from .models import * # Đảm bảo bạn đã import tất cả các models cần thiết
-from dj_rest_auth.serializers import LoginSerializer, UserDetailsSerializer
-from dj_rest_auth.registration.serializers import RegisterSerializer
-from allauth.socialaccount.models import SocialAccount
+from .models import *
+import os
+from .utils import register_social_user
+from .google_social_auth import Google
+import logging
+from rest_framework.exceptions import AuthenticationFailed
+from django.conf import settings
+
+logger = logging.getLogger(__name__)
+
+GOOGLE_CLIENT_ID='875195545395-kh54279ju4pea3h5n1b85uj3hohn0aih.apps.googleusercontent.com'
+
+
+
+class GoogleSocialAuthSerializer(serializers.Serializer):
+    auth_token = serializers.CharField()
+
+    def validate_auth_token(self, auth_token):
+        user_data = None # Khởi tạo biến để tránh lỗi
+
+        try:
+            # 1. Xác minh token với Google
+            # Hàm này sẽ ném ra lỗi nếu token không hợp lệ/hết hạn.
+            user_data = Google.validate(auth_token)
+
+            # In ra log để debug (có thể bỏ đi sau)
+            print(f"User data from Google: {user_data}")
+
+            # 2. Kiểm tra Client ID
+            # Dòng này chỉ được thực thi nếu Google.validate() thành công và trả về dictionary.
+            if user_data.get('aud') != GOOGLE_CLIENT_ID:
+                logger.error(f"Client ID mismatch. Received aud: {user_data.get('aud')}, Expected: {GOOGLE_CLIENT_ID}")
+                raise serializers.ValidationError(
+                    'Oops, who are you? Please re-login.'
+                )
+
+        except Exception as e:
+            # Bắt các lỗi từ Google.validate() và các lỗi khác.
+            logger.error(f"Error validating Google ID token: {e}")
+            raise serializers.ValidationError(
+                f'The token is invalid or expired. Please login again. Detail: {e}'
+            )
+
+        # 3. Gọi hàm đăng ký/đăng nhập người dùng social
+        # ...
+        try:
+            return register_social_user(
+                provider='google',
+                user_id=user_data['sub'],
+                email=user_data['email'],
+                name=user_data['name'],
+                user_photo=user_data.get('picture')
+            )
+        except Exception as e:
+            logger.error(f"An error occurred during social user registration: {e}")
+            raise serializers.ValidationError(
+                f'An error occurred. Please try again. Error: {e}'
+            )
+
 
 
 # ---
 ## Serializers Người Dùng (User)
 # ---
-# class UserSerializer(serializers.ModelSerializer):
-#     age = serializers.IntegerField(read_only=True) # age là một @property, chỉ đọc
+class UserSerializer(serializers.ModelSerializer):
+    age = serializers.IntegerField(read_only=True)  # age là một @property, chỉ đọc
 
-#     class Meta:
-#         model = User
-#         fields = [
-#             'id', 'email', 'first_name', 'last_name', 'date_of_birth',
-#             'living_place', 'role', 'user_level', 'is_active_user', 'age',
-#             'username', 'user_photo' # Thêm user_photo
-#         ]
-#         # Thêm 'password' vào extra_kwargs để đảm bảo nó được ghi nhưng không đọc ra ngoài
-#         extra_kwargs = {
-#             'password': {'write_only': True, 'required': False} # password không bắt buộc khi update
-#         }
+    # Tạo một trường password riêng để handle việc cập nhật mật khẩu
+    password = serializers.CharField(
+        write_only=True,
+        required=False,
+        style={'input_type': 'password'}
+    )
 
-#     def create(self, validated_data):
-#         user = User.objects.create_user(**validated_data)
-#         return user
-
-#     def update(self, instance, validated_data):
-#         # Xử lý trường password riêng nếu có
-#         password = validated_data.pop('password', None)
-#         user = super().update(instance, validated_data)
-#         if password:
-#             user.set_password(password)
-#             user.save()
-#         return user
-
-
-
-class UserSerializer(UserDetailsSerializer): # Đây là serializer cho /api/v1/auth/user/ và UserViewSet
-    age = serializers.IntegerField(read_only=True)
-
-    class Meta(UserDetailsSerializer.Meta):
+    class Meta:
         model = User
-        fields = (
-            'pk', 'email', 'first_name', 'last_name', 'date_of_birth',
-            'living_place', 'role', 'user_level', 'is_active_user', 'user_photo',
-            'is_superuser', 'is_staff', 'age', 'password' # Thêm password để cho phép tạo/cập nhật admin
-        )
-        read_only_fields = ('pk', 'is_superuser', 'is_staff', 'age') # email có thể chỉnh sửa, role có thể chỉnh sửa bởi admin
-        extra_kwargs = {
-            'password': {'write_only': True, 'required': False}
-        }
+        fields = [
+            'id', 'email', 'first_name', 'last_name', 'date_of_birth',
+            'living_place', 'role', 'user_level', 'is_active_user', 'age','sex',
+             'user_photo', 'password' # Thêm password vào fields
+        ]
 
-    # Override create để xử lý mật khẩu
+        # Đặt first_name và last_name là read_only
+        read_only_fields = ['email']
+
+        # Xóa extra_kwargs cho password vì chúng ta đã tạo trường password riêng
+        # và handle logic trong update() method.
+
     def create(self, validated_data):
+        # Tách password ra để tạo user
         password = validated_data.pop('password', None)
-        user = User.objects.create(**validated_data)
+        user = User.objects.create_user(**validated_data)
         if password:
             user.set_password(password)
-        user.save()
+            user.save()
         return user
 
-    # Override update để xử lý mật khẩu
     def update(self, instance, validated_data):
+        # Xử lý trường password riêng nếu có trong validated_data
         password = validated_data.pop('password', None)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+
+        # Cập nhật các trường còn lại
+        user = super().update(instance, validated_data)
+
+        # Đặt lại mật khẩu nếu password được cung cấp
         if password:
-            instance.set_password(password)
-        instance.save()
-        return instance
+            user.set_password(password)
+            user.save()
 
-    # Bạn có thể thêm method để lấy social accounts nếu muốn
-    # social_accounts = serializers.SerializerMethodField()
-
-    # def get_social_accounts(self, obj):
-    #     accounts = SocialAccount.objects.filter(user=obj)
-    #     return [{'provider': a.provider, 'uid': a.uid} for a in accounts]
+        return user
 
 
 
@@ -297,19 +328,4 @@ class SchoolOutstandingSerializer(serializers.ModelSerializer):
 
 
 
-
-
-class CustomLoginSerializer(LoginSerializer):
-    username = None # Vô hiệu hóa trường username
-    email = serializers.EmailField(required=True, allow_blank=False)
-
-class CustomRegisterSerializer(RegisterSerializer):
-    first_name = serializers.CharField(required=True, max_length=150)
-    last_name = serializers.CharField(required=True, max_length=150)
-
-    def custom_signup(self, request, user):
-        user.first_name = self.validated_data.get('first_name', '')
-        user.last_name = self.validated_data.get('last_name', '')
-        # Bạn có thể thêm các trường khác nếu cần
-        user.save()
 

@@ -4,11 +4,11 @@ import os
 
 # --- CẤU HÌNH DATABASE CỦA BẠN ---
 DB_CONFIG = {
-    'host': 'webtimtruong.mysql.pythonanywhere-services.com',
-    'user': 'webtimtruong',
-    'password': '15django432',
-    'database': 'webtimtruong$timtruongdb',
-    'port': 3306
+    'host': 'timtruonghoc.mysql.pythonanywhere-services.com', # Thay bằng Host của bạn
+    'user': 'timtruonghoc',            # Thay bằng Username database của bạn
+    'password': 'admin@123',  # Thay bằng Password database của bạn
+    'database': 'timtruonghoc$timtruonghocdb', # Thay bằng Database name của bạn
+    'port': 3306 # Cổng mặc định của MySQL, hoặc 5432 cho PostgreSQL
 }
 
 # --- CẤU HÌNH FILE EXCEL CỦA BẠN ---
@@ -78,7 +78,7 @@ def import_fieldgroup_data_from_excel():
             insert_query = f"""
                 INSERT INTO {TABLE_NAME} ({columns_str}) VALUES ({placeholders})
                 ON DUPLICATE KEY UPDATE
-                name=VALUES(name), 
+                name=VALUES(name),
                 description=VALUES(description),
                 cover=VALUES(cover)
             """

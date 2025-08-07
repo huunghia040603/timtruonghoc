@@ -11,38 +11,104 @@ import django_filters
 from django.db.models import Case, When, Value, IntegerField, F # Import F for __in lookup
 from rest_framework import generics
 from .filter import *
-from allauth.socialaccount.providers.google.views import GoogleOAuth2Adapter
-from allauth.socialaccount.providers.facebook.views import FacebookOAuth2Adapter
-from dj_rest_auth.registration.views import SocialLoginView
-
-
-
 from django.shortcuts import render, redirect # THÊM DÒNG NÀY
 from django.contrib.auth.decorators import login_required # THÊM DÒNG NÀY
-from .form import UserProfileForm #
+from rest_framework.generics import GenericAPIView
+from rest_framework import status
+from rest_framework import permissions
+from rest_framework.exceptions import PermissionDenied
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
+
+
+class IsOwnerOrAdmin(permissions.BasePermission):
+    """
+    Cho phép admin hoặc chính chủ sở hữu được truy cập.
+    """
+    def has_object_permission(self, request, view, obj):
+        # Admin luôn được phép truy cập
+        if request.user and (request.user.is_superuser or request.user.is_staff):
+            return True
+
+        # Chỉ cho phép chủ sở hữu (người dùng đang đăng nhập) truy cập
+        return obj == request.user
+
+class GoogleSocialAuthView(GenericAPIView):
+    authentication_classes = [JWTAuthentication]
+    serializer_class = GoogleSocialAuthSerializer
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Lấy toàn bộ dictionary đã được validate, chứa token.
+        data = serializer.validated_data
+
+        # In ra log để kiểm tra cấu trúc dữ liệu trước khi trả về
+        print(f"Data to be returned: {data}")
+
+        return Response(data, status=status.HTTP_200_OK)
 
 # ---
 ## User ViewSet
 # ---
+# class UserViewSet(viewsets.ModelViewSet):
+#     queryset = User.objects.all()
+#     serializer_class = UserSerializer
+
+#     def get_permissions(self):
+#         # Admin có thể tạo user
+#         if self.action == 'create':
+#             return [IsAdminUser()]
+
+#         # Cho phép người dùng đã đăng nhập tự sửa/xóa bản thân, và admin có thể sửa/xóa bất kỳ ai
+#         elif self.action in ['update', 'partial_update', 'destroy']:
+#             return [IsAuthenticated()]
+
+#         # Cho phép xem danh sách (chỉ admin) và xem chi tiết (cho bất kỳ ai)
+#         return [AllowAny()]
+
+#     def get_queryset(self):
+#         user = self.request.user
+
+#         # Admin có thể xem tất cả user
+#         if user and user.is_authenticated and (user.is_superuser or user.is_staff):
+#             return User.objects.all()
+
+#         # User thường chỉ xem được thông tin của chính họ
+#         if user and user.is_authenticated:
+#             return User.objects.filter(id=user.id)
+
+#         return User.objects.none()
+
+#     def perform_update(self, serializer):
+#         # Custom logic để chỉ user đang đăng nhập mới có thể update chính họ
+#         # hoặc admin update bất kỳ ai
+#         instance = self.get_object()
+#         user = self.request.user
+
+#         # Nếu người dùng không phải là admin và đang cố gắng cập nhật người khác, raise exception
+#         if not user.is_superuser and not user.is_staff and instance.id != user.id:
+#             raise PermissionDenied("You do not have permission to update this user.")
+
+#         serializer.save() # Or User.objects.all() if get_permissions allows general access
+
+
+
+
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
     def get_permissions(self):
-        if self.action == 'create':
-            return [IsAdminUser()] # Chỉ admin mới có thể tạo
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            # Để user thường sửa chính họ, admin sửa bất kỳ ai
-            return [IsAuthenticated()] # Sẽ được xử lý thêm trong perform_update/destroy hoặc custom permission
-        return [AllowAny()] # List/Retrieve
+        if self.action in ['update', 'partial_update', 'destroy']:
+            # Áp dụng quyền IsAuthenticated và IsOwnerOrAdmin
+            return [IsAuthenticated(), IsOwnerOrAdmin()]
 
-    def get_queryset(self):
-        # Admin (IsAdminUser) có thể xem tất cả, User thường chỉ xem chính mình
-        if self.request.user.is_authenticated:
-            if self.request.user.is_superuser or self.request.user.is_staff: # Hoặc kiểm tra role nếu bạn dùng role field
-                return User.objects.all()
-            return User.objects.filter(id=self.request.user.id)
-        return User.objects.none() # Or User.objects.all() if get_permissions allows general access
+        # Đối với các action khác, bạn có thể thiết lập quyền khác
+        return [AllowAny()]
+
 
 # ---
 ## FieldGroup ViewSet
@@ -67,6 +133,7 @@ class OutstandingMajorViewSet(viewsets.ModelViewSet):
     Hỗ trợ hiển thị dữ liệu đơn giản và phức tạp, cùng với phân trang, tìm kiếm, lọc và sắp xếp.
     """
     pagination_class = MajorPagination
+    permission_classes = [AllowAny]
 
     # Thiết lập các backend cho lọc, tìm kiếm và sắp xếp
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -136,7 +203,7 @@ class AllMajorViewSet(viewsets.ModelViewSet):
     Hỗ trợ hiển thị dữ liệu đơn giản và phức tạp, cùng với phân trang, tìm kiếm, lọc và sắp xếp.
     """
     queryset = Major.objects.all() # Lấy tất cả các ngành
-
+    permission_classes = [AllowAny]
     # Thiết lập lớp phân trang mặc định
     pagination_class = MajorPagination
 
@@ -357,35 +424,39 @@ class StaffViewSet(viewsets.ModelViewSet):
 class PartnerViewSet(viewsets.ModelViewSet):
     queryset = Partner.objects.all()
     serializer_class = PartnerSerializer
-    permission_classes = [IsAdminUser] # Only admins can manage partners
+    permission_classes = [IsAdminUser] # Chỉ admin mới có thể quản lý đối tác
 
     filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_fields = ['is_active_partner', 'school']
     search_fields = ['school__name_vn', 'contact_person']
 
     def get_queryset(self):
-        if self.request.user.is_superuser or self.request.user.role == 'admin': # Admin xem tất cả
-            return Partner.objects.all()
-        # Nếu user có role là 'partner' và có liên kết trực tiếp đến một Partner instance
-        if self.request.user.is_authenticated and self.request.user.role == 'partner':
-            # Giả sử User model có one-to-one field 'partner_profile' trỏ đến Partner
-            try:
-                # Cần phải liên kết user với Partner instance
-                # Nếu bạn không có OneToOneField từ User đến Partner, bạn cần một cách khác để tìm Partner của user này
-                # Ví dụ, nếu User có trường school_id và Partner cũng có school_id
-                # Hoặc bạn thêm field `user` vào Partner model (là cách phổ biến nhất)
-                return Partner.objects.filter(user=self.request.user)
-            except Partner.DoesNotExist:
-                return Partner.objects.none()
-        return Partner.objects.none() # Default queryset for admins
+        # Đây là dòng cực kỳ quan trọng để giải quyết lỗi drf_yasg
+        # Nó kiểm tra xem request có phải là từ drf_yasg để tạo tài liệu hay không.
+        if getattr(self, 'swagger_fake_view', False):
+            # Nếu là drf_yasg, trả về một queryset rỗng để nó có thể tạo schema
+            # mà không cần truy cập các thuộc tính của user hoặc database.
+            return Partner.objects.none()
 
-
+        # Dưới đây là logic khi có một request API thực sự đến view này.
+        # Tại thời điểm này, do permission_classes=[IsAdminUser] đã được kiểm tra,
+        # self.request.user SẼ LÀ một User đã đăng nhập và có quyền admin.
+        # Nếu không, request đã bị từ chối trước khi đến đây.
+        if self.request.user.is_superuser or self.request.user.role == 'admin':
+            return Partner.objects.all() # Admin xem tất cả
+        else:
+            # Dòng này về lý thuyết sẽ không bao giờ được thực thi nếu IsAdminUser hoạt động đúng,
+            # vì chỉ admin mới được phép truy cập view này.
+            # Tuy nhiên, nếu có lý do nào đó (ví dụ: permission class bị override hoặc bỏ qua),
+            # nó sẽ xử lý trường hợp người dùng không phải superuser/admin nhưng đã đăng nhập.
+            return Partner.objects.filter(owner=self.request.user)
 
 # ---
 ## Partner AllMajorOfAllSchool
 # ---
 class AllMajorViewByField(viewsets.ModelViewSet, generics.ListAPIView):
     serializer_class = AllMajorOfAllSchoolSerializer
+    permission_classes = [AllowAny]
     # Đã bỏ dòng này: pagination_class = AllMajorPagination
 
     def get_queryset(self):
@@ -419,7 +490,7 @@ class AllMajorViewByFieldHasPagi(viewsets.ModelViewSet, generics.ListAPIView):
     serializer_class = AllMajorOfAllSchoolSerializer
     pagination_class = AllMajorPagination
     filterset_class = AllMajorFilter
-
+    permission_classes = [AllowAny]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
 
     ordering_fields = ['name', 'opportunities', 'tag']
@@ -481,28 +552,4 @@ class OutstandingSchoolViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
 
 
-class GoogleLogin(SocialLoginView):
-    adapter_class = GoogleOAuth2Adapter
-    callback_url = "http://127.0.0.1:5000/social" # Phải khớp với redirect_uri bạn đăng ký với Google và dùng trong frontend
-    client_class = "web" # Hoặc "native" tùy thuộc vào ứng dụng của bạn
 
-class FacebookLogin(SocialLoginView):
-    adapter_class = FacebookOAuth2Adapter
-    callback_url = "http://127.0.0.1:5000/social" # Phải khớp với redirect_uri bạn đăng ký với Facebook và dùng trong frontend
-    client_class = "web"
-
-
-@login_required
-def account_view(request):
-    user = request.user
-    if request.method == 'POST':
-        form = UserProfileForm(request.POST, instance=user)
-        if form.is_valid():
-            form.save()
-            return redirect('account_success') # Tạo URL này hoặc chuyển hướng đến trang tương tự
-    else:
-        form = UserProfileForm(instance=user)
-    return render(request, 'apptimtruonghoc/account.html', {'form': form}) # Đảm bảo đường dẫn template đúng
-
-def account_success_view(request):
-    return render(request, 'apptimtruonghoc/account_success.html')

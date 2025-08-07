@@ -4,10 +4,10 @@ import os # Để lấy thông tin đường dẫn
 
 # --- CẤU HÌNH DATABASE CỦA BẠN ---
 DB_CONFIG = {
-    'host': 'webtimtruong.mysql.pythonanywhere-services.com', # Thay bằng Host của bạn
-    'user': 'webtimtruong',            # Thay bằng Username database của bạn
-    'password': '15django432',  # Thay bằng Password database của bạn
-    'database': 'webtimtruong$timtruongdb', # Thay bằng Database name của bạn
+    'host': 'timtruonghoc.mysql.pythonanywhere-services.com', # Thay bằng Host của bạn
+    'user': 'timtruonghoc',            # Thay bằng Username database của bạn
+    'password': 'admin@123',  # Thay bằng Password database của bạn
+    'database': 'timtruonghoc$timtruonghocdb', # Thay bằng Database name của bạn
     'port': 3306 # Cổng mặc định của MySQL, hoặc 5432 cho PostgreSQL
 }
 

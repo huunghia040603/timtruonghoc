@@ -98,15 +98,15 @@ class FieldGroupAdminForm(forms.ModelForm):
 class CustomUserAdmin(BaseUserAdmin):
     list_display = (
         'email', 'first_name', 'last_name', 'role', 'user_level',
-        'is_staff', 'is_active_user', 'date_of_birth', 'age', 'display_user_photo'
+        'is_staff', 'is_active_user', 'date_of_birth', 'age', 'display_user_photo','sex'
     )
-    list_filter = ('is_staff', 'is_superuser', 'is_active_user', 'role', 'user_level')
+    list_filter = ('is_staff', 'is_superuser', 'is_active_user', 'role', 'user_level','sex')
     search_fields = ('email', 'first_name', 'last_name', 'living_place')
     readonly_fields = ['age', 'last_login', 'date_joined']
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'date_of_birth', 'living_place', 'user_photo')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'date_of_birth', 'living_place', 'user_photo','sex')}),
         ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
         ('User Role & Level', {'fields': ('role', 'user_level', 'is_active_user')}),
@@ -116,7 +116,7 @@ class CustomUserAdmin(BaseUserAdmin):
         (None, {
             'classes': ('wide',),
             'fields': ('email', 'password', 'password2', 'first_name', 'last_name',
-                       'date_of_birth', 'living_place', 'role', 'user_level', 'is_active_user'),
+                       'date_of_birth', 'living_place', 'role', 'user_level', 'is_active_user','sex'),
         }),
     )
 

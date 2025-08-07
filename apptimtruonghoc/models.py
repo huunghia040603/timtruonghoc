@@ -2,9 +2,6 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 from datetime import date
 from ckeditor.fields import RichTextField
-
-
-
 from django.contrib.auth.models import UserManager as BaseUserManager
 
 class CustomUserManager(BaseUserManager):
@@ -54,6 +51,11 @@ class User(AbstractUser):
         ('postgraduate', 'Sau đại học'),
         ('other', 'Khác'),
     ]
+    SEX_CHOICES = [
+        ('male', 'Nam'),
+        ('female', 'Nữ'),
+        ('other', 'Khác'),
+    ]
 
     email = models.EmailField(unique=True, verbose_name="Email (Tên đăng nhập)")
     first_name = models.CharField(max_length=150,blank=True, null=True, verbose_name="Họ")
@@ -65,7 +67,7 @@ class User(AbstractUser):
     is_active_user = models.BooleanField(default=True, verbose_name="Trạng thái tài khoản")
     user_photo=models.CharField(max_length=255, blank=True, null=True, verbose_name="Ảnh đại diện")
     password= models.CharField(max_length=255, verbose_name="Mật khẩu")
-
+    sex= models.CharField(max_length=255,choices=SEX_CHOICES, blank=True, null=True, verbose_name="Giới tính")
     # Thêm related_name để giải quyết xung đột
     groups = models.ManyToManyField('auth.Group',related_name='apptimtruonghoc_user_set', blank=True,help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.',verbose_name='groups')
     user_permissions = models.ManyToManyField('auth.Permission',related_name='apptimtruonghoc_user_permissions_set', blank=True,help_text='Specific permissions for this user.',verbose_name='user permissions',)
@@ -176,7 +178,7 @@ class School(models.Model):
     quota_per_year = models.IntegerField(blank=True, null=True, verbose_name="Chỉ tiêu/năm")
     introduction = RichTextField(verbose_name="Giới thiệu trường", blank=True, null=True, )
     phone_number = models.CharField(max_length=100,blank=True, null=True, verbose_name="Số điện thoại hotline")
-    email = models.EmailField(unique=True, verbose_name="Email", blank=True, null=True)
+    email = models.EmailField( verbose_name="Email", blank=True, null=True)
     map_link = models.CharField(max_length=1500, blank=True, null=True, verbose_name="Link bản đồ")
     album = models.OneToOneField(Album, on_delete=models.SET_NULL, null=True, blank=True, related_name='school_linked_to_this_album', verbose_name="Album ảnh của trường")
     scholarships = RichTextField(blank=True, null=True, verbose_name="Học bổng")

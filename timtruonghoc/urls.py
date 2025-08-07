@@ -10,6 +10,7 @@ from drf_yasg import openapi
 from drf_yasg.views import get_schema_view
 from rest_framework import permissions
 
+
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -32,30 +33,9 @@ schema_view = get_schema_view(
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('apptimtruonghoc.urls')),
-    # Các URL của dj-rest-auth và allauth cho API authentication
-    path('api/v1/auth/', include('dj_rest_auth.urls')),
-    path('api/v1/auth/registration/', include('dj_rest_auth.registration.urls')),
 
-    # Các URL cụ thể cho social login API
-    path('api/v1/auth/google/connect/', include('allauth.socialaccount.providers.google.urls')),
-    path('api/v1/auth/facebook/connect/', include('allauth.socialaccount.providers.facebook.urls')),
-    path('api/v1/auth/google/login/', views.GoogleLogin.as_view(), name='google_login_api'),
-    path('api/v1/auth/facebook/login/', views.FacebookLogin.as_view(), name='facebook_login_api'),
-
-    # URLs cho JWT
-    path('api/v1/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/v1/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-
-    # Các API tài nguyên của ứng dụng apptimtruonghoc (tất cả sẽ nằm dưới /api/v1/)
-    path('api/v1/', include('apptimtruonghoc.urls')),
-
-    # CKEditor URLs
     path('ckeditor/', include('ckeditor_uploader.urls')),
 
-    # Các trang HTML hoặc các URL không phải API
-    # Giữ các đường dẫn này nếu bạn muốn các trang HTML truy cập trực tiếp
-    path('account/', views.account_view, name='account'), # Trang tài khoản HTML
-    path('account/success/', views.account_success_view, name='account_success'), # Trang thành công HTML
 
     # URLs cho DRF-YASG
     re_path(r'^swagger(?P<format>\.json|\.yaml)$',

@@ -4,16 +4,16 @@ import os
 
 # --- CẤU HÌNH DATABASE CỦA BẠN ---
 DB_CONFIG = {
-    'host': 'webtimtruong.mysql.pythonanywhere-services.com',
-    'user': 'webtimtruong',
-    'password': '15django432',
-    'database': 'webtimtruong$timtruongdb',
-    'port': 3306
+    'host': 'timtruonghoc.mysql.pythonanywhere-services.com', # Thay bằng Host của bạn
+    'user': 'timtruonghoc',            # Thay bằng Username database của bạn
+    'password': 'admin@123',  # Thay bằng Password database của bạn
+    'database': 'timtruonghoc$timtruonghocdb', # Thay bằng Database name của bạn
+    'port': 3306 # Cổng mặc định của MySQL, hoặc 5432 cho PostgreSQL
 }
 
 # --- CẤU HÌNH FILE EXCEL CỦA BẠN ---
 # Đảm bảo file Excel nằm trong cùng thư mục với script này
-EXCEL_FILE_NAME = 'MajorRieng.xlsx' # Thay bằng tên file Excel của bạn
+EXCEL_FILE_NAME = 'MajorRiengTruong.xlsx' # Thay bằng tên file Excel của bạn
 # Tên sheet chứa dữ liệu (nếu không phải sheet đầu tiên)
 SHEET_NAME = 'Sheet1' # Thay bằng tên sheet của bạn
 
@@ -25,7 +25,7 @@ TABLE_NAME = 'apptimtruonghoc_major' # Tên bảng Major trong Django
 # Đã loại bỏ 'tags' khỏi danh sách cột
 DB_COLUMNS = [
     'major_id', 'name', 'description', 'entry_requirement',
-    'min_tuition_fee_per_year', 'max_tuition_fee_per_year', 'status', 'school_id'
+    'min_tuition_fee_per_year', 'max_tuition_fee_per_year', 'status','tags', 'school_id'
 ]
 
 # --- CẤU HÌNH ÁNH XẠ CỘT TỪ EXCEL SANG TRƯỜNG TRONG DATABASE ---
@@ -35,11 +35,13 @@ EXCEL_TO_DB_COLUMN_MAP = {
     'Mã ngành': 'major_id',
     'Tên ngành': 'name',
     'Mô tả ngành (Điểm khác biệt so với đào tạo ở trường khác)': 'description',
-    'Phương thức xét tuyển (Dự kiến 2025)': 'entry_requirement',
+    'Phương thức xét tuyển': 'entry_requirement',
     'Học phí tối thiểu': 'min_tuition_fee_per_year',
     'Học phí tối đa': 'max_tuition_fee_per_year',
     'Ngành còn hoạt động?': 'status',
-    'mã trường': 'school_id', # Ánh xạ cột 'mã trường' trong Excel sang 'school_id' trong DB
+    'tags': 'tags',
+    'mã trường': 'school_id',
+     # Ánh xạ cột 'mã trường' trong Excel sang 'school_id' trong DB
 }
 
 

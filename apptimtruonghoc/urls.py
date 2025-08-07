@@ -1,13 +1,7 @@
-# apptimtruonghoc/urls.py
-
 from django.urls import path, include
 from rest_framework import routers
-from .views import (
-    UserViewSet, FieldGroupViewSet, OutstandingMajorViewSet, AllMajorViewSet,
-    AlbumViewSet, ImageViewSet, SchoolViewSet, OutstandingSchoolViewSet,
-    AdmissionScoreViewSet, AdminViewSet, StaffViewSet, PartnerViewSet,
-    AllMajorViewByField, AllMajorViewByFieldHasPagi
-)
+from .views import *
+from rest_framework_simplejwt.views import (TokenObtainPairView,TokenRefreshView)
 
 # Create a default router
 r = routers.DefaultRouter()
@@ -29,20 +23,15 @@ r.register('all_major', AllMajorViewByField, basename='all_major')
 r.register('all_major_has_pagi', AllMajorViewByFieldHasPagi, basename='all_major_has_pagi')
 
 
-# Configure urlpatterns for your application
 urlpatterns = [
     # Include the router-generated URLs
     path('', include(r.urls)),
-    # XÓA CÁC DÒNG NÀY ĐI VÌ CHÚNG ĐÃ ĐƯỢC DI CHUYỂN VÀO urls.py CHÍNH CỦA PROJECT
-    # path('account/', views.account_view, name='account'),
-    # path('account/success/', views.account_success_view, name='account_success'),
-    # path('auth/google/login/', views.GoogleLogin.as_view(), name='google_login'),
-    # path('auth/facebook/login/', views.FacebookLogin.as_view(), name='facebook_login'),
 
-    # You can add other custom paths here if needed for this app's API resources
-    # Example: path('custom-api-endpoint/', CustomAPIView.as_view()),
+    # Thêm URL cho GoogleSocialAuthView
+    path('auth/google-social-auth/', GoogleSocialAuthView.as_view(), name='google-social-auth'),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
-
 
 
 
